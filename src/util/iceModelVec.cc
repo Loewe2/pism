@@ -168,7 +168,7 @@ Range IceModelVec::range() const {
 }
 
 /** Convert from `int` to PETSc's `NormType`.
- * 
+ *
  *
  * @param[in] input norm type as an integer
  *
@@ -309,7 +309,7 @@ void IceModelVec::set_dof(std::shared_ptr<petsc::DM> da_source, petsc::Vec &sour
   }
 
   petsc::DMDAVecArrayDOF tmp_src(da_source, source), tmp_v(m_impl->da, m_impl->v);
-  
+
   double
     ***source_a = static_cast<double***>(tmp_src.get()),
     ***result_a = static_cast<double***>(tmp_v.get());
@@ -628,7 +628,7 @@ void  IceModelVec::update_ghosts() {
 
   ierr = DMLocalToLocalBegin(*m_impl->da, m_impl->v, INSERT_VALUES, m_impl->v);
   PISM_CHK(ierr, "DMLocalToLocalBegin");
-  
+
   ierr = DMLocalToLocalEnd(*m_impl->da, m_impl->v, INSERT_VALUES, m_impl->v);
   PISM_CHK(ierr, "DMLocalToLocalEnd");
 }

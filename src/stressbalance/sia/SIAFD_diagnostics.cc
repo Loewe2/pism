@@ -1,4 +1,4 @@
-// Copyright (C) 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018 Constantine Khroulev
+// Copyright (C) 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2020 Constantine Khroulev
 //
 // This file is part of PISM.
 //
@@ -150,8 +150,7 @@ static void copy_staggered_vec(const IceModelVec2Stag &input, IceModelVec2Stag &
 }
 
 IceModelVec::Ptr SIAFD_diffusivity_staggered::compute_impl() const {
-  IceModelVec2Stag::Ptr result(new IceModelVec2Stag);
-  result->create(m_grid, "diffusivity", WITHOUT_GHOSTS);
+  IceModelVec2Stag::Ptr result(new IceModelVec2Stag(m_grid, "diffusivity", WITHOUT_GHOSTS));
   result->metadata(0) = m_vars[0];
   result->metadata(1) = m_vars[1];
 
@@ -175,8 +174,7 @@ SIAFD_h_x::SIAFD_h_x(const SIAFD *m)
 
 IceModelVec::Ptr SIAFD_h_x::compute_impl() const {
 
-  IceModelVec2Stag::Ptr result(new IceModelVec2Stag);
-  result->create(m_grid, "h_x", WITHOUT_GHOSTS);
+  IceModelVec2Stag::Ptr result(new IceModelVec2Stag(m_grid, "h_x", WITHOUT_GHOSTS));
   result->metadata(0) = m_vars[0];
   result->metadata(1) = m_vars[1];
 
@@ -200,8 +198,7 @@ SIAFD_h_y::SIAFD_h_y(const SIAFD *m)
 
 IceModelVec::Ptr SIAFD_h_y::compute_impl() const {
 
-  IceModelVec2Stag::Ptr result(new IceModelVec2Stag);
-  result->create(m_grid, "h_y", WITHOUT_GHOSTS);
+  IceModelVec2Stag::Ptr result(new IceModelVec2Stag(m_grid, "h_y", WITHOUT_GHOSTS));
   result->metadata(0) = m_vars[0];
   result->metadata(1) = m_vars[1];
 

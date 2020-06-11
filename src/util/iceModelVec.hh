@@ -398,6 +398,21 @@ public:
 #endif
     return static_cast<T**>(m_array)[j][i];
   }
+
+  inline StarStencil<T> star(int i, int j) const {
+    const auto &self = *this;
+
+    StarStencil<T> result;
+
+    result.ij = self(i,j);
+    result.e =  self(i+1,j);
+    result.w =  self(i-1,j);
+    result.n =  self(i,j+1);
+    result.s =  self(i,j-1);
+
+    return result;
+  }
+
 };
 
 class IceModelVec2V;
@@ -512,7 +527,6 @@ public:
 //! components are not called `u` and `v` (to avoid confusion).
 class IceModelVec2Stag : public IceModelVec2 {
 public:
-  IceModelVec2Stag();
   IceModelVec2Stag(IceGrid::ConstPtr grid, const std::string &short_name,
                    IceModelVecKind ghostedp, unsigned int stencil_width = 1);
 

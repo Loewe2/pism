@@ -120,7 +120,7 @@ void IceModelVec2S::set_to_magnitude(const IceModelVec2S &v_x,
   }
 
   inc_state_counter();          // mark as modified
-  
+
 }
 
 void IceModelVec2S::set_to_magnitude(const IceModelVec2V &input) {
@@ -133,7 +133,7 @@ void IceModelVec2S::set_to_magnitude(const IceModelVec2V &input) {
   }
 }
 
-//! Masks out all the areas where \f$ M \le 0 \f$ by setting them to `fill`. 
+//! Masks out all the areas where \f$ M \le 0 \f$ by setting them to `fill`.
 void IceModelVec2S::mask_by(const IceModelVec2S &M, double fill) {
   IceModelVec::AccessList list{this, &M};
 
@@ -207,7 +207,7 @@ void IceModelVec2::read_impl(const File &nc, const unsigned int time) {
 
     IceModelVec2::set_dof(da2, tmp, j);
   }
-  
+
   // The calls above only set the values owned by a processor, so we need to
   // communicate if m_has_ghosts == true:
   if (m_impl->ghosted) {
@@ -349,7 +349,7 @@ double IceModelVec2S::diff_x_p(int i, int j) const {
   if (m_impl->grid->periodicity() & X_PERIODIC) {
     return diff_x(i,j);
   }
-  
+
   if (i == 0) {
     return ((*this)(i + 1,j) - (*this)(i,j)) / (m_impl->grid->dx());
   } else if (i == (int)m_impl->grid->Mx() - 1) {
@@ -366,7 +366,7 @@ double IceModelVec2S::diff_y_p(int i, int j) const {
   if (m_impl->grid->periodicity() & Y_PERIODIC) {
     return diff_y(i,j);
   }
-  
+
   if (j == 0) {
     return ((*this)(i,j + 1) - (*this)(i,j)) / (m_impl->grid->dy());
   } else if (j == (int)m_impl->grid->My() - 1) {
@@ -383,7 +383,7 @@ double IceModelVec2S::sum() const {
   double result = 0;
 
   IceModelVec::AccessList list(*this);
-  
+
   // sum up the local part:
   for (Points p(*m_impl->grid); p; p.next()) {
     result += (*this)(p.i(), p.j());
@@ -505,12 +505,6 @@ void IceModelVec2S::copy_from(const IceModelVec &source) {
 }
 
 // IceModelVec2Stag
-
-IceModelVec2Stag::IceModelVec2Stag()
-  : IceModelVec2() {
-  m_impl->dof = 2;
-  m_impl->begin_access_use_dof = true;
-}
 
 IceModelVec2Stag::Ptr IceModelVec2Stag::ToStaggered(IceModelVec::Ptr input) {
   IceModelVec2Stag::Ptr result = dynamic_pointer_cast<IceModelVec2Stag,IceModelVec>(input);
