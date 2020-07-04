@@ -1,6 +1,5 @@
-PISM, a Parallel Ice Sheet Model
+Profiling fork of PISM, a Parallel Ice Sheet Model
 ================================
-|cipism|_
 
 The Parallel Ice Sheet Model is an open source, parallel, high-resolution ice sheet model:
 
@@ -25,10 +24,58 @@ Homepage
 
     http://www.pism-docs.org/
 
-Download and Install
---------------------
+Download and Install with `Spack <spack_>`_
+------------------------------
+1. Download
 
-See the `Installing PISM <pism-installation_>`_ on ``pism-docs.org``.
+- ``git clone git@github.com:Loewe2/pism.git``
+
+2. Setup dependencies an install script
+
+- ``cd`` to build directory 
+- ``spack setup "pism@local ^openmpi +pmi schedulers=auto"``
+
+  - for more options see ``spack info pism``
+
+3. Generate MAKEFILE
+
+- ``./spconfig.py PATH_TO_GIT_REPO``
+
+4. Build
+
+- ``make install``
+
+5. More dependencies
+
+- ``spack install nco py-numpy py-netcdf4``
+- ``spack load nco py-numpy py-netcdf4``
+
+Install with existing dependencies (only in SGS Environment)
+----------------------------------
+
+1. Download
+
+- ``git clone git@github.com:Loewe2/pism.git`
+
+2. Source Spack and load environment
+
+- ``. /import/sgs.local/scratch/vancraar/spack/share/spack/setup-env.sh``
+- ``spack load nco py-numpy py-netcdf4``
+
+4. Generate MAKEFILE
+
+- ``cd`` to build directory 
+- ``/import/sgs.local/scratch/vancraar/pism/spconfig.py PATH_TO_GIT_REPO``
+
+5. Build
+
+- ``make install``
+
+
+
+
+
+Also see the `Installing PISM <pism-installation_>`_ on ``pism-docs.org``!
 
 Support
 -------
@@ -63,6 +110,7 @@ Want to contribute? Great! See `Contributing to PISM <pism-contributing_>`_.
 .. _NSF-Polar: https://nsf.gov/geo/plr/about.jsp
 .. _Slack-PISM: https://join.slack.com/t/uaf-pism/shared_invite/enQtODc3Njc1ODg0ODM5LThmOTEyNjEwN2I3ZTU4YTc5OGFhNGMzOWQ1ZmUzMWUwZDAyMzRlMzBhZDg1NDY5MmQ1YWFjNDU4MDZiNTk3YmE
 .. _uaf-pism: mailto:uaf-pism@alaska.edu
+.. _spack: https://github.com/spack/spack
 
 ..
    Local Variables:
