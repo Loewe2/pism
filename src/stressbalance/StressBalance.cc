@@ -172,7 +172,7 @@ void StressBalance::update(const Inputs &inputs, bool full_update) {
 
   try {
     profiling.begin("stress_balance.shallow");
-    m_shallow_stress_balance->update(inputs, full_update);
+    m_shallow_stress_balance->update(inputs, full_update, profiling);
     profiling.end("stress_balance.shallow");
 
     profiling.begin("stress_balance.modifier");

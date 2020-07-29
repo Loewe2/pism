@@ -27,6 +27,8 @@
 #include "pism/util/IceModelVec2CellType.hh"
 
 #include "SSB_diagnostics.hh"
+#include "pism/util/Profiling.hh"
+
 
 namespace pism {
 namespace stressbalance {
@@ -146,13 +148,15 @@ ZeroSliding::~ZeroSliding() {
 }
 
 //! \brief Update the trivial shallow stress balance object.
-void ZeroSliding::update(const Inputs &inputs, bool full_update) {
+void ZeroSliding::update(const Inputs &inputs, bool full_update, const Profiling &profiling) {
+  profiling.begin("stress_balance.shallow.zerosliding");
   (void) inputs;
 
   if (full_update) {
     m_velocity.set(0.0);
     m_basal_frictional_heating.set(0.0);
   }
+  profiling.end("stress_balance.shallow.zerosliding");
 }
 
 //! \brief Compute the basal frictional heating.
@@ -353,7 +357,7 @@ PrescribedSliding::~PrescribedSliding() {
   // empty
 }
 
-void PrescribedSliding::update(const Inputs &inputs, bool full_update) {
+void PrescribedSliding::update(const Inputs &inputs, bool full_update, const Profiling &profiling) {
   (void) inputs;
   if (full_update) {
     m_basal_frictional_heating.set(0.0);

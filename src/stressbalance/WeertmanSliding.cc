@@ -22,6 +22,7 @@
 #include "pism/rheology/FlowLawFactory.hh"
 #include "pism/geometry/Geometry.hh"
 #include "StressBalance.hh"
+#include "pism/util/Profiling.hh"
 
 namespace pism {
 namespace stressbalance {
@@ -75,8 +76,9 @@ void WeertmanSliding::init_impl() {
  * This parameterization is used for areas of grounded ice where the base of the ice is
  * temperate.
  */
-void WeertmanSliding::update(const Inputs &inputs, bool full_update) {
+void WeertmanSliding::update(const Inputs &inputs, bool full_update, const Profiling &profiling) {
 
+  profiling.begin("stress_balance.shallow.weertmansliding");
   (void) full_update;
 
   const IceModelVec2S        &H         = inputs.geometry->ice_thickness;
@@ -116,6 +118,7 @@ void WeertmanSliding::update(const Inputs &inputs, bool full_update) {
     loop.failed();
   }
   loop.check();
+  profiling.end("stress_balance.shallow.weertmansliding");
 
 }
 

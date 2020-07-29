@@ -114,7 +114,7 @@ public:
 
   SSAStrengthExtension *strength_extension;
 
-  virtual void update(const Inputs &inputs, bool full_update);
+  virtual void update(const Inputs &inputs, bool full_update, const Profiling &profiling);
 
   void set_initial_guess(const IceModelVec2V &guess);
 
