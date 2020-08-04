@@ -29,6 +29,7 @@
 #include "pism/geometry/Geometry.hh"
 
 #include "pism/util/node_types.hh"
+#include "pism/util/Profiling.hh"
 
 namespace pism {
 namespace stressbalance {
@@ -176,9 +177,13 @@ void SSAFEM::solve(const Inputs &inputs) {
 }
 
 TerminationReason::Ptr SSAFEM::solve_with_reason(const Inputs &inputs) {
+  const Profiling &profiling = m_grid->ctx()->profiling();
 
+  profiling.begin("stress_balance.shallow.ssa.solve.cache_inputs");
   // Set up the system to solve.
   cache_inputs(inputs);
+  profiling.end("stress_balance.shallow.ssa.solve.cache_inputs");
+
 
   return solve_nocache();
 }
@@ -187,7 +192,9 @@ TerminationReason::Ptr SSAFEM::solve_with_reason(const Inputs &inputs) {
 //! points.  See the disccusion of SSAFEM::solve for more discussion.
 TerminationReason::Ptr SSAFEM::solve_nocache() {
   PetscErrorCode ierr;
+  const Profiling &profiling = m_grid->ctx()->profiling();
 
+  profiling.begin("stress_balance.shallow.ssa.solve.solve_nocache");
   m_epsilon_ssa = m_config->get_number("stress_balance.ssa.epsilon");
 
   options::String filename("-ssa_view", "");
@@ -215,21 +222,28 @@ TerminationReason::Ptr SSAFEM::solve_nocache() {
   }
 
   // Solve:
+  profiling.begin("stress_balance.shallow.ssa.solve.solve_nocache.snesolve");
   ierr = SNESSolve(m_snes, NULL, m_velocity_global.vec());
   PISM_CHK(ierr, "SNESSolve");
+  profiling.end("stress_balance.shallow.ssa.solve.solve_nocache.snesolve");
 
   // See if it worked.
+  profiling.begin("stress_balance.shallow.ssa.solve.solve_nocache.snesgetconvergedreason");
   SNESConvergedReason snes_reason;
   ierr = SNESGetConvergedReason(m_snes, &snes_reason); PISM_CHK(ierr, "SNESGetConvergedReason");
+  profiling.end("stress_balance.shallow.ssa.solve.solve_nocache.snesgetconvergedreason");
+
 
   TerminationReason::Ptr reason(new SNESTerminationReason(snes_reason));
   if (not reason->failed()) {
 
     // Extract the solution back from SSAX to velocity and communicate.
+    profiling.begin("stress_balance.shallow.ssa.solve.solve_nocache.extract_solution");
     m_velocity.copy_from(m_velocity_global);
     m_velocity.update_ghosts();
+    profiling.end("stress_balance.shallow.ssa.solve.solve_nocache.extract_solution");
 
-    bool view_solution = options::Bool("-ssa_view_solution", "view solution of the SSA system");
+    static const bool view_solution = options::Bool("-ssa_view_solution", "view solution of the SSA system");
     if (view_solution) {
       petsc::Viewer viewer;
       ierr = PetscViewerASCIIOpen(m_grid->com, filename->c_str(), viewer.rawptr());
@@ -243,7 +257,7 @@ TerminationReason::Ptr SSAFEM::solve_nocache() {
     }
 
   }
-
+  profiling.end("stress_balance.shallow.ssa.solve.solve_nocache");
   return reason;
 }
 
