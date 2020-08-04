@@ -124,7 +124,7 @@ void SSATestCase::run() {
   inputs.bc_values             = &m_bc_values;
 
   bool full_update = true;
-  m_ssa->update(inputs, full_update);
+  m_ssa->update(inputs, full_update, m_ctx->profiling());
 }
 
 //! Report on the generated solution

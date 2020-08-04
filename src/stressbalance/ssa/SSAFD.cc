@@ -32,6 +32,7 @@
 #include "pism/stressbalance/StressBalance.hh"
 #include "pism/geometry/Geometry.hh"
 #include "pism/util/pism_utilities.hh"
+#include "pism/util/Profiling.hh"
 
 namespace pism {
 namespace stressbalance {
@@ -903,38 +904,54 @@ but it may be worthwhile.  Note the user can already do `-pc_type asm
 FIXME: update this doxygen comment
 */
 void SSAFD::solve(const Inputs &inputs) {
+  const Profiling &profiling = m_grid->ctx()->profiling();
+
+  
+  profiling.begin("stress_balance.shallow.ssa.solve.save_old");
 
   // Store away old SSA velocity (it might be needed in case a solver
   // fails).
   m_velocity_old.copy_from(m_velocity);
+  profiling.end("stress_balance.shallow.ssa.solve.save_old");
+
 
   // These computations do not depend on the solution, so they need to
   // be done once.
   {
+    profiling.begin("stress_balance.shallow.ssa.solve.assemble_rhs");
     assemble_rhs(inputs);
+    profiling.end("stress_balance.shallow.ssa.solve.assemble_rhs");
+
+    profiling.begin("stress_balance.shallow.ssa.solve.compute_hardav_staggered");
     compute_hardav_staggered(inputs);
+    profiling.end("stress_balance.shallow.ssa.solve.compute_hardav_staggered");
   }
 
+  profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration");
   for (unsigned int k = 0; k < 3; ++k) {
     try {
       if (k == 0) {
         // default strategy
+        profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.default");
         picard_iteration(inputs, m_config->get_number("stress_balance.ssa.epsilon"), 1.0);
-
+        profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.default");
         break;
       } else if (k == 1) {
         // try underrelaxing the iteration
+        profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.underrelaxing");
         const double underrelax = m_config->get_number("stress_balance.ssa.fd.nuH_iter_failure_underrelaxation");
         m_log->message(1,
                    "  re-trying with effective viscosity under-relaxation (parameter = %.2f) ...\n",
                    underrelax);
         picard_iteration(inputs, m_config->get_number("stress_balance.ssa.epsilon"), underrelax);
+        profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.underrelaxing");
 
         break;
       } else if (k == 2) {
         // try over-regularization
+        profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.overrelaxing");
         picard_strategy_regularization(inputs);
-
+        profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.overrelaxing");
         break;
       } else {
         // if we reached this, then all strategies above failed
@@ -945,7 +962,9 @@ void SSAFD::solve(const Inputs &inputs) {
       // proceed to the next strategy
     }
   }
+  profiling.end("stress_balance.shallow.ssa.solve.picard_iteration");
 
+  profiling.begin("stress_balance.shallow.ssa.solve.post_processing");
   // Post-process velocities if the user asked for it:
   if (m_config->get_flag("stress_balance.ssa.fd.brutal_sliding")) {
     const double brutal_sliding_scaleFactor = m_config->get_number("stress_balance.ssa.fd.brutal_sliding_scale");
@@ -953,41 +972,62 @@ void SSAFD::solve(const Inputs &inputs) {
 
     m_velocity.update_ghosts();
   }
+  profiling.end("stress_balance.shallow.ssa.solve.post_processing");
 }
 
 void SSAFD::picard_iteration(const Inputs &inputs,
                              double nuH_regularization,
                              double nuH_iter_failure_underrelax) {
+  const Profiling &profiling = m_grid->ctx()->profiling();
 
   if (m_default_pc_failure_count < m_default_pc_failure_max_count) {
     // Give BJACOBI another shot if we haven't tried it enough yet
 
     try {
+      profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.bjacobi");
+      profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.bjacobi.setup");
       pc_setup_bjacobi();
+      profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.bjacobi.setup");
+      profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.bjacobi.manager");
       picard_manager(inputs, nuH_regularization,
                      nuH_iter_failure_underrelax);
-
+      profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.bjacobi.manager");
+      profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.bjacobi");
     } catch (KSPFailure &f) {
-
+      profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.asm");
       m_default_pc_failure_count += 1;
 
       m_log->message(1,
                  "  re-trying using the Additive Schwarz preconditioner...\n");
 
+      profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.asm.setup");
+
       pc_setup_asm();
 
       m_velocity.copy_from(m_velocity_old);
+      profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.asm.setup");
+      profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.asm.manager");
 
       picard_manager(inputs, nuH_regularization,
                      nuH_iter_failure_underrelax);
+      profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.asm.manager");
+      profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.asm");
     }
 
   } else {
     // otherwise use ASM
+    profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.asm");
+
+    profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.asm.setup");
     pc_setup_asm();
+
+    profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.asm.setup");
+    profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.asm.manager");
 
     picard_manager(inputs, nuH_regularization,
                    nuH_iter_failure_underrelax);
+    profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.asm.manager");
+    profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.asm");
   }
 }
 
@@ -995,6 +1035,11 @@ void SSAFD::picard_iteration(const Inputs &inputs,
 void SSAFD::picard_manager(const Inputs &inputs,
                            double nuH_regularization,
                            double nuH_iter_failure_underrelax) {
+  const Profiling &profiling = m_grid->ctx()->profiling();
+  profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.manager");
+  profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.manager.init");
+
+
   PetscErrorCode ierr;
   double   nuH_norm, nuH_norm_change;
   // ksp_iterations should be a PetscInt because it is used in the
@@ -1021,9 +1066,12 @@ void SSAFD::picard_manager(const Inputs &inputs,
     compute_nuH_staggered(*inputs.geometry, nuH_regularization, m_nuH);
   }
   update_nuH_viewers();
+  profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.manager.init");
 
+  profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.manager.outer");
   // outer loop
   for (unsigned int k = 0; k < max_iterations; ++k) {
+
 
     if (very_verbose) {
       snprintf(tempstr, 100, "  %2d:", k);
@@ -1041,6 +1089,7 @@ void SSAFD::picard_manager(const Inputs &inputs,
       m_stdout_ssa += "A:";
     }
 
+    profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.manager.outer.inner");
     // Call PETSc to solve linear system by iterative method; "inner iteration":
     ierr = KSPSetOperators(m_KSP, m_A, m_A);
     PISM_CHK(ierr, "KSPSetOperator");
@@ -1051,6 +1100,7 @@ void SSAFD::picard_manager(const Inputs &inputs,
     // Check if diverged; report to standard out about iteration
     ierr = KSPGetConvergedReason(m_KSP, &reason);
     PISM_CHK(ierr, "KSPGetConvergedReason");
+    profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.manager.outer.inner");
 
     if (reason < 0) {
       // KSP diverged
@@ -1077,6 +1127,7 @@ void SSAFD::picard_manager(const Inputs &inputs,
     }
 
     // limit ice speed
+    profiling.begin("stress_balance.shallow.ssa.solve.picard_iteration.manager.icespeed");
     {
       auto max_speed = m_config->get_number("stress_balance.ssa.fd.max_speed", "m second-1");
       int high_speed_counter = 0;
@@ -1100,6 +1151,7 @@ void SSAFD::picard_manager(const Inputs &inputs,
         m_log->message(2, "  SSA speed was capped at %d locations\n", high_speed_counter);
       }
     }
+    profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.manager.icespeed");
 
     // Communicate so that we have stencil width for evaluation of effective
     // viscosity on next "outer" iteration (and geometry etc. if done):
@@ -1150,7 +1202,8 @@ void SSAFD::picard_manager(const Inputs &inputs,
                                    max_iterations, nuH_regularization));
 
  done:
-
+  profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.manager.outer");
+  
   if (very_verbose) {
     snprintf(tempstr, 100, "... =%5d outer iterations, ~%3.1f KSP iterations each\n",
              (int)outer_iterations, ((double) ksp_iterations_total) / outer_iterations);
@@ -1167,6 +1220,7 @@ void SSAFD::picard_manager(const Inputs &inputs,
   if (verbose) {
     m_stdout_ssa = "  SSA: " + m_stdout_ssa;
   }
+  profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.manager");
 }
 
 //! Old SSAFD recovery strategy: increase the SSA regularization parameter.

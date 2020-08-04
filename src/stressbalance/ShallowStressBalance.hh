@@ -53,7 +53,7 @@ public:
 
   void init();
 
-  virtual void update(const Inputs &inputs, bool full_update) = 0;
+  virtual void update(const Inputs &inputs, bool full_update, const Profiling &profiling) = 0;
 
   //! \brief Get the thickness-advective 2D velocity.
   const IceModelVec2V& velocity() const;
@@ -99,7 +99,7 @@ public:
   ZeroSliding(IceGrid::ConstPtr g);
   virtual ~ZeroSliding();
   
-  virtual void update(const Inputs &inputs, bool full_update);
+  virtual void update(const Inputs &inputs, bool full_update, const Profiling &profiling);
 
 protected:
 };
@@ -108,7 +108,7 @@ class PrescribedSliding : public ZeroSliding {
 public:
   PrescribedSliding(IceGrid::ConstPtr g);
   virtual ~PrescribedSliding();
-  virtual void update(const Inputs &inputs, bool full_update);
+  virtual void update(const Inputs &inputs, bool full_update, const Profiling &profiling);
 protected:
   virtual void init_impl();
 };

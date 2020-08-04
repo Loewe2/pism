@@ -32,6 +32,8 @@
 
 #include "SSA_diagnostics.hh"
 
+#include "pism/util/Profiling.hh"
+
 namespace pism {
 namespace stressbalance {
 
@@ -159,28 +161,44 @@ void SSA::init_impl() {
 }
 
 //! \brief Update the SSA solution.
-void SSA::update(const Inputs &inputs, bool full_update) {
+void SSA::update(const Inputs &inputs, bool full_update, const Profiling &profiling) {
 
   // update the cell type mask using the ice-free thickness threshold for stress balance
   // computations
+  profiling.begin("stress_balance.shallow.ssa");
   {
+  profiling.begin("stress_balance.shallow.ssa.geometryCalculator");
     const double H_threshold = m_config->get_number("stress_balance.ice_free_thickness_standard");
     GeometryCalculator gc(*m_config);
+  profiling.end("stress_balance.shallow.ssa.geometryCalculator");
+  profiling.begin("stress_balance.shallow.ssa.set_icefree_thickness");
     gc.set_icefree_thickness(H_threshold);
+  profiling.end("stress_balance.shallow.ssa.set_icefree_thickness");
+  profiling.begin("stress_balance.shallow.ssa.compute_mask");
+
 
     gc.compute_mask(inputs.geometry->sea_level_elevation,
                     inputs.geometry->bed_elevation,
                     inputs.geometry->ice_thickness,
                     m_mask);
+  profiling.end("stress_balance.shallow.ssa.compute_mask");
+
   }
 
   if (full_update) {
+  profiling.begin("stress_balance.shallow.ssa.solve");
     solve(inputs);
+  profiling.end("stress_balance.shallow.ssa.solve");
+  profiling.begin("stress_balance.shallow.ssa.compute_basal_frictional_heating");
+
     compute_basal_frictional_heating(m_velocity,
                                      *inputs.basal_yield_stress,
                                      m_mask,
                                      m_basal_frictional_heating);
+  profiling.end("stress_balance.shallow.ssa.compute_basal_frictional_heating");
+
   }
+  profiling.end("stress_balance.shallow.ssa");
 }
 
 /*!

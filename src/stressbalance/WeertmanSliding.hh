@@ -29,7 +29,7 @@ class WeertmanSliding : public ShallowStressBalance {
 public:
   WeertmanSliding(IceGrid::ConstPtr g);
   virtual ~WeertmanSliding();
-  virtual void update(const Inputs &inputs, bool full_update);
+  virtual void update(const Inputs &inputs, bool full_update, const Profiling &profiling);
 protected:
   void init_impl();
 };
