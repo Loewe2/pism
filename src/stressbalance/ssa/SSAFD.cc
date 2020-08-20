@@ -698,12 +698,24 @@ void SSAFD::assemble_matrix(const Inputs &inputs,
 
       /* Coefficients of the discretization of the first equation; u first, then v. */
       double eq1[] = {
-        0,  -c_n*N/dy2,  0,
-        -4*c_w*W/dx2,  (c_n*N+c_s*S)/dy2+(4*c_e*E+4*c_w*W)/dx2,  -4*c_e*E/dx2,
-        0,  -c_s*S/dy2,  0,
-        c_w*W*WNW/d2+c_n*NNW*N/d4,  (c_n*NNE*N-c_n*NNW*N)/d4+(c_w*W*N-c_e*E*N)/d2,  -c_e*E*ENE/d2-c_n*NNE*N/d4,
-        (c_w*W*WSW-c_w*W*WNW)/d2+(c_n*W*N-c_s*W*S)/d4,  (c_n*E*N-c_n*W*N-c_s*E*S+c_s*W*S)/d4+(c_e*E*N-c_w*W*N-c_e*E*S+c_w*W*S)/d2,  (c_e*E*ENE-c_e*E*ESE)/d2+(c_s*E*S-c_n*E*N)/d4,
-        -c_w*W*WSW/d2-c_s*SSW*S/d4,  (c_s*SSW*S-c_s*SSE*S)/d4+(c_e*E*S-c_w*W*S)/d2,  c_e*E*ESE/d2+c_s*SSE*S/d4,
+        0,  
+        -c_n*N/dy2,  
+        0,
+        -4*c_w*W/dx2,
+        (c_n*N+c_s*S)/dy2+(4*c_e*E+4*c_w*W)/dx2, 
+        -4*c_e*E/dx2,
+        0,  
+        -c_s*S/dy2,
+        0,
+        c_w*W*WNW/d2+c_n*NNW*N/d4,
+        (c_n*NNE*N-c_n*NNW*N)/d4+(c_w*W*N-c_e*E*N)/d2,
+        -c_e*E*ENE/d2-c_n*NNE*N/d4,
+        (c_w*W*WSW-c_w*W*WNW)/d2+(c_n*W*N-c_s*W*S)/d4,
+        (c_n*E*N-c_n*W*N-c_s*E*S+c_s*W*S)/d4+(c_e*E*N-c_w*W*N-c_e*E*S+c_w*W*S)/d2,
+        (c_e*E*ENE-c_e*E*ESE)/d2+(c_s*E*S-c_n*E*N)/d4,
+        -c_w*W*WSW/d2-c_s*SSW*S/d4,
+        (c_s*SSW*S-c_s*SSE*S)/d4+(c_e*E*S-c_w*W*S)/d2,
+        c_e*E*ESE/d2+c_s*SSE*S/d4,
       };
 
       /* Coefficients of the discretization of the second equation; u first, then v. */
@@ -1094,13 +1106,56 @@ void SSAFD::picard_manager(const Inputs &inputs,
     ierr = KSPSetOperators(m_KSP, m_A, m_A);
     PISM_CHK(ierr, "KSPSetOperator");
 
+    // m_A;
+    PetscViewer viewer;
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD,"vec.output", FILE_MODE_WRITE, &viewer);
+    VecView(m_b.vec(), viewer);
+    // PetscInt size = 0;
+    // PetscInt size2 = 0;
+    // VecGetSize(m_b.vec(),&size);
+    // m_log->message(1, "m_b size: %i\n", size);
+    // MatGetSize(m_A, &size, &size2);
+    // m_log->message(1, "m_A size: %i x %i \n", size, size2);
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD,"mat.output",FILE_MODE_WRITE, &viewer);
+    MatView(m_A, 	viewer);
+
+
+    // VecGetSize(m_b.vec(),&size);
+    // m_log->message(1, "m_b size: %i\n", size);
+    // Vec m_A_diagonal, result;
+    // VecDuplicate(m_b.vec(), &m_A_diagonal);
+    // VecDuplicate(m_b.vec(), &result);
+
+    
+
+    // MatGetDiagonal(m_A, m_A_diagonal);
+    // VecGetSize(m_A_diagonal,&size);
+    // m_log->message(1, "m_A_diagonal size: %i\n", size);
+    // VecGetSize(m_velocity_global.vec(),&size);
+    // m_log->message(1, "m_velocity_global size: %i\n", size);
+    // VecPointwiseDivide(m_velocity_global.vec(),m_b.vec(), m_A_diagonal);
     ierr = KSPSolve(m_KSP, m_b.vec(), m_velocity_global.vec());
     PISM_CHK(ierr, "KSPSolve");
+    // VecAXPY(result, -1, m_velocity_global.vec());
+    // PetscReal      norm;
+    // VecNorm(result,NORM_2,&norm);
+    // VecMax(result,NULL,&norm);
+ 
+    // m_log->message(1, "norm: %f\n", norm);
+    // VecNorm(m_velocity_global.vec(),NORM_2,&norm);
+    // VecMax(m_velocity_global.vec(),NULL,&norm);
+    // m_log->message(1, "norm: %f\n", norm);
+    // VecView(result, PETSC_VIEWER_STDOUT_WORLD);
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD,"result.output", FILE_MODE_WRITE, &viewer);
+    VecView(m_velocity_global.vec(), viewer);
+    exit(0);
+
 
     // Check if diverged; report to standard out about iteration
     ierr = KSPGetConvergedReason(m_KSP, &reason);
     PISM_CHK(ierr, "KSPGetConvergedReason");
     profiling.end("stress_balance.shallow.ssa.solve.picard_iteration.manager.outer.inner");
+
 
     if (reason < 0) {
       // KSP diverged
