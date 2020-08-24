@@ -1119,6 +1119,10 @@ void SSAFD::picard_manager(const Inputs &inputs,
     PetscViewerBinaryOpen(PETSC_COMM_WORLD,"mat.output",FILE_MODE_WRITE, &viewer);
     MatView(m_A, 	viewer);
 
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD,"mat.txt", &viewer);
+    PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_INFO_DETAIL);
+    MatView(m_A, 	viewer);
+    VecView(m_b.vec(), viewer);
 
     // VecGetSize(m_b.vec(),&size);
     // m_log->message(1, "m_b size: %i\n", size);
@@ -1146,6 +1150,7 @@ void SSAFD::picard_manager(const Inputs &inputs,
     // VecMax(m_velocity_global.vec(),NULL,&norm);
     // m_log->message(1, "norm: %f\n", norm);
     // VecView(result, PETSC_VIEWER_STDOUT_WORLD);
+    VecView(m_velocity_global.vec(), viewer);
     PetscViewerBinaryOpen(PETSC_COMM_WORLD,"result.output", FILE_MODE_WRITE, &viewer);
     VecView(m_velocity_global.vec(), viewer);
     exit(0);
